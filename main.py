@@ -5,16 +5,26 @@ import pandas as pd
 np.set_printoptions(suppress=True)
 
 class Dense_layer():
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, acctivation="sigmoid"):
         self.weights = np.random.randn(input_size, output_size)
         self.biases = np.zeros((1, output_size))
 
+        self.activation = acctivation
+
     def forward(self, input):
         self.input = input
-        return np.dot(input, self.weights) + self.biases
+        self.output = np.dot(input, self.weights) + self.biases
+
+        if self.activation == "sigmoid":
+            return self.sigmoid(self.output)
+        elif self.activation == "relu":
+            return self.relu(self.output)
     
     def backward(self, gradient, learning_rate):
-        gradient_delta = gradient * self.d_sigmoid(self.sigmoid_func)
+        if self.activation == "sigmoid":
+            gradient_delta = gradient * self.d_sigmoid(self.sigmoid_func)
+        elif self.activation == "relu":
+            gradient_delta = gradient * self.d_relu(self.relu_output)
         gradient_delta = gradient_delta * learning_rate
 
         self.weights += self.input.T.dot(gradient_delta)
@@ -29,11 +39,18 @@ class Dense_layer():
     def d_sigmoid(self, x):
         self.d_sigmoid_func = np.multiply(x, 1.0-x)
         return self.d_sigmoid_func
+    
+    def relu(self, x):
+        self.relu_output = np.maximum(0, x) 
+        return self.relu_output
+
+    def d_relu(self, x):
+        return 1 * (x > 0)
 
 
 class Network:
     def __init__(self):
-        self.learning_rate = 0.1
+        self.learning_rate = 0.5
         self.setup = [
             Dense_layer(784, 16),
             Dense_layer(16, 10),
@@ -43,7 +60,7 @@ class Network:
     def train(self, X, Y):
         output = X
         for layer in self.setup:
-            output = layer.sigmoid(layer.forward(output))
+            output = layer.forward(output)
 
         gradient = self.one_hot_encoding(Y) - output
 
@@ -56,7 +73,7 @@ class Network:
     def predict(self, X, Y):
         output = X
         for layer in self.setup:
-            output = layer.sigmoid(layer.forward(output))
+            output = layer.forward(output)
 
         return np.argmax(output)
         
@@ -103,12 +120,14 @@ for i,label in enumerate(Y_train):
 for i,label in enumerate(Y_test):
     dataSetTest.append([label, np.array([list(X_test[i])])])
 
-epochs = 10
+epochs = 25
 for _ in range(epochs):
     np.random.shuffle(dataSetTrain)
 
     for Y, X in dataSetTrain:
         nn.train(X, Y)
+
+    nn.learning_rate -= nn.learning_rate * 0.2
 
 
 
@@ -128,7 +147,10 @@ print(wrong)
 
 
 
-
-# best - 86,6% acc (15 hidden)
-# best - 86,95% acc (32 hidden)
-# best - 87,15% acc (16 hidden)
+# no epochs = 10 epochs
+# best - 86,6% acc (15 hidden / 0.1 lr)
+# best - 86,95% acc (32 hidden / 0.1 lr)
+# best - 87,15% acc (16 hidden / 0.1 lr)
+# best - 89,55% acc (16 hidden but 25 epochs / 0.1 lr)
+# best - 91,3% acc (16 hidden / 0.2 lr)
+# best - 92% acc (16 hidden but 25 epochs / 0.2 lr)
