@@ -1,7 +1,8 @@
 import random
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas
+import pandas as pd
+np.set_printoptions(suppress=True)
 
 class Dense_layer():
     def __init__(self, input_size, output_size):
@@ -32,25 +33,11 @@ class Dense_layer():
 
 class Network:
     def __init__(self):
-        self.learning_rate = 0.5
+        self.learning_rate = 0.1
         self.setup = [
-            Dense_layer(784, 64),
-            Dense_layer(64, 10)
+            Dense_layer(784, 16),
+            Dense_layer(16, 10),
         ]
-        self.data = [
-                    [np.array(([[1, 0]]), dtype=float),
-                     np.array(([[1]]), dtype=float)
-                    ],
-                    [np.array(([[1, 1]]), dtype=float),
-                     np.array(([[0]]), dtype=float)
-                    ],
-                    [np.array(([[0, 1]]), dtype=float),
-                     np.array(([[1]]), dtype=float)
-                    ],
-                    [np.array(([[0, 0]]), dtype=float),
-                     np.array(([[0]]), dtype=float)
-                    ]
-                ]
 
 
     def train(self, X, Y):
@@ -58,15 +45,21 @@ class Network:
         for layer in self.setup:
             output = layer.sigmoid(layer.forward(output))
 
-        gradient = Y - output
+        gradient = self.one_hot_encoding(Y) - output
+
         for layer in reversed(self.setup):
             gradient = layer.backward(gradient, self.learning_rate)
 
         return output
 
 
-    def predict(self, index):
-        return self.train(self.data[index][0] , self.data[index][1])
+    def predict(self, X, Y):
+        output = X
+        for layer in self.setup:
+            output = layer.sigmoid(layer.forward(output))
+
+        return np.argmax(output)
+        
 
 
     def train_loop(self, num):
@@ -75,15 +68,67 @@ class Network:
             self.train(X, Y)
 
     def one_hot_encoding(self, Y):
-        pass
-
-
+        one_hot = np.zeros(10)
+        one_hot[Y] = 1
+        return one_hot
 
 
 nn = Network()
-nn.train_loop(10000)
 
-print(nn.predict(0), "   1")
-print(nn.predict(1), "   0")
-print(nn.predict(2), "   1")
-print(nn.predict(3), "   0")
+
+data = pd.read_csv('project/train.csv')
+data = np.array(data)
+np.random.shuffle(data)
+
+m, n = data.shape
+data_train = data[:40000]
+data_test = data[40000:]
+
+print(data_test.shape)
+
+Y_train = data_train[:, 0]
+X_train = data_train[:, 1:] # x je 1D np array skusit to dát do 2D array pls work
+X_train = X_train / 255
+
+Y_test = data_test[:, 0]
+X_test = data_test[:, 1:] # x je 1D np array skusit to dát do 2D array pls work
+X_test = X_test / 255
+
+dataSetTrain = []
+dataSetTest = []
+
+for i,label in enumerate(Y_train):
+    dataSetTrain.append([label, np.array([list(X_train[i])])])
+
+for i,label in enumerate(Y_test):
+    dataSetTest.append([label, np.array([list(X_test[i])])])
+
+epochs = 10
+for _ in range(epochs):
+    np.random.shuffle(dataSetTrain)
+
+    for Y, X in dataSetTrain:
+        nn.train(X, Y)
+
+
+
+wrong = 0
+for Y, X in dataSetTest:
+    final = nn.predict(X, Y)
+
+    if Y != final:
+        wrong += 1
+
+    # image = X.reshape((28,28)) * 255
+    # plt.gray()
+    # plt.imshow(image, interpolation="nearest")
+    # plt.show()
+
+print(wrong)
+
+
+
+
+# best - 86,6% acc (15 hidden)
+# best - 86,95% acc (32 hidden)
+# best - 87,15% acc (16 hidden)
