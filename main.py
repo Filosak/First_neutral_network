@@ -122,11 +122,11 @@ data_train = data[:40000]
 data_test = data[40000:]
 
 Y_train = data_train[:, 0]
-X_train = data_train[:, 1:] # x je 1D np array skusit to dát do 2D array pls work
+X_train = data_train[:, 1:]
 X_train = X_train / 255
 
 Y_test = data_test[:, 0]
-X_test = data_test[:, 1:] # x je 1D np array skusit to dát do 2D array pls work
+X_test = data_test[:, 1:]
 X_test = X_test / 255
 
 dataSetTrain = []
